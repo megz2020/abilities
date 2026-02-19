@@ -5,7 +5,6 @@ import uuid
 from datetime import datetime
 
 import requests
-
 from src.agent.capability import MatchingCapability
 from src.agent.capability_worker import CapabilityWorker
 from src.main import AgentWorker
@@ -23,9 +22,22 @@ from src.main import AgentWorker
 # =============================================================================
 
 EXIT_WORDS = {
-    "stop", "exit", "quit", "done", "cancel", "bye", "goodbye",
-    "leave", "that's all", "that's it", "no thanks", "i'm done",
-    "nothing else", "all good", "nope", "i'm good",
+    "stop",
+    "exit",
+    "quit",
+    "done",
+    "cancel",
+    "bye",
+    "goodbye",
+    "leave",
+    "that's all",
+    "that's it",
+    "no thanks",
+    "i'm done",
+    "nothing else",
+    "all good",
+    "nope",
+    "i'm good",
 }
 
 PETS_FILE = "petcare_pets.json"
@@ -33,7 +45,15 @@ ACTIVITY_LOG_FILE = "petcare_activity_log.json"
 
 MAX_LOG_ENTRIES = 500
 
-ACTIVITY_TYPES = {"feeding", "medication", "walk", "weight", "vet_visit", "grooming", "other"}
+ACTIVITY_TYPES = {
+    "feeding",
+    "medication",
+    "walk",
+    "weight",
+    "vet_visit",
+    "grooming",
+    "other",
+}
 
 # Replace with your own Google Places API key
 GOOGLE_PLACES_API_KEY = "your_google_places_api_key_here"
@@ -45,7 +65,7 @@ CLASSIFY_PROMPT = (
     "Classify the user's intent. Return ONLY valid JSON with no markdown fences.\n\n"
     "Possible modes:\n"
     '- {{"mode": "log", "pet_name": "<name or null>", "activity_type": "feeding|medication|walk|weight|vet_visit|grooming|other", "details": "<short description>", "value": null}}\n'
-    '  (value is a number ONLY for weight entries, null otherwise)\n'
+    "  (value is a number ONLY for weight entries, null otherwise)\n"
     '- {{"mode": "lookup", "pet_name": "<name or null>", "query": "<the user\'s question>"}}\n'
     '- {{"mode": "emergency_vet"}}\n'
     '- {{"mode": "weather", "pet_name": "<name or null>"}}\n'
@@ -250,15 +270,11 @@ class PetCareAssistantCapability(MatchingCapability):
                     )
                     break
 
-                self.worker.editor_logging_handler.info(
-                    f"[PetCare] Intent: {intent}"
-                )
+                self.worker.editor_logging_handler.info(f"[PetCare] Intent: {intent}")
                 await self._route_intent(intent)
 
         except Exception as e:
-            self.worker.editor_logging_handler.error(
-                f"[PetCare] Unexpected error: {e}"
-            )
+            self.worker.editor_logging_handler.error(f"[PetCare] Unexpected error: {e}")
             await self.capability_worker.speak(
                 "Something went wrong. Closing Pet Care."
             )
@@ -349,14 +365,14 @@ class PetCareAssistantCapability(MatchingCapability):
             )
 
             # Ask about additional pets
-            await self.capability_worker.speak(
-                "Do you have any other pets to add?"
-            )
+            await self.capability_worker.speak("Do you have any other pets to add?")
             response = await self.capability_worker.user_response()
             if not response or self._is_exit(response):
                 break
             cleaned = response.lower().strip()
-            if any(w in cleaned for w in ["no", "nope", "nah", "that's it", "that's all"]):
+            if any(
+                w in cleaned for w in ["no", "nope", "nah", "that's it", "that's all"]
+            ):
                 break
             # They said yes or gave a name — loop for another pet
             await self.capability_worker.speak("Great! What's your next pet's name?")
@@ -367,7 +383,9 @@ class PetCareAssistantCapability(MatchingCapability):
         name_input = await self.capability_worker.user_response()
         if not name_input or self._is_exit(name_input):
             return None
-        name = self._extract_value(name_input, "Extract the pet's name from this. Return just the name.")
+        name = self._extract_value(
+            name_input, "Extract the pet's name from this. Return just the name."
+        )
 
         # Species
         species_input = await self.capability_worker.run_io_loop(
@@ -377,18 +395,16 @@ class PetCareAssistantCapability(MatchingCapability):
             return None
         species = self._extract_value(
             species_input,
-            "Extract the animal species. Return one word: dog, cat, bird, rabbit, etc."
+            "Extract the animal species. Return one word: dog, cat, bird, rabbit, etc.",
         ).lower()
 
         # Breed
-        breed_input = await self.capability_worker.run_io_loop(
-            f"What breed is {name}?"
-        )
+        breed_input = await self.capability_worker.run_io_loop(f"What breed is {name}?")
         if not breed_input or self._is_exit(breed_input):
             return None
         breed = self._extract_value(
             breed_input,
-            "Extract the breed name. If they don't know or say mixed, return 'mixed'."
+            "Extract the breed name. If they don't know or say mixed, return 'mixed'.",
         )
 
         # Age / birthday
@@ -402,7 +418,7 @@ class PetCareAssistantCapability(MatchingCapability):
             "Extract a birthday in YYYY-MM-DD format if possible. "
             "If they give an age like '3 years old', calculate the approximate birthday "
             f"from today ({datetime.now().strftime('%Y-%m-%d')}). "
-            "Return just the date string."
+            "Return just the date string.",
         )
 
         # Weight
@@ -414,7 +430,7 @@ class PetCareAssistantCapability(MatchingCapability):
         weight_str = self._extract_value(
             weight_input,
             "Extract the weight as a number in pounds. If they give kilos, convert to pounds. "
-            "Return just the number."
+            "Return just the number.",
         )
         try:
             weight_lbs = float(weight_str)
@@ -430,7 +446,7 @@ class PetCareAssistantCapability(MatchingCapability):
         allergies_str = self._extract_value(
             allergy_input,
             "Extract allergies as a JSON array of strings. "
-            "If none, return []. Example: [\"chicken\", \"grain\"]. Return only the array."
+            'If none, return []. Example: ["chicken", "grain"]. Return only the array.',
         )
         try:
             allergies = json.loads(allergies_str)
@@ -448,8 +464,8 @@ class PetCareAssistantCapability(MatchingCapability):
         meds_str = self._extract_value(
             med_input,
             "Extract medications as a JSON array of objects with 'name' and 'frequency' keys. "
-            "If none, return []. Example: [{\"name\": \"Heartgard\", \"frequency\": \"monthly\"}]. "
-            "Return only the array."
+            'If none, return []. Example: [{"name": "Heartgard", "frequency": "monthly"}]. '
+            "Return only the array.",
         )
         try:
             medications = json.loads(meds_str)
@@ -468,8 +484,7 @@ class PetCareAssistantCapability(MatchingCapability):
             cleaned = vet_input.lower().strip()
             if not any(w in cleaned for w in ["no", "nope", "skip", "don't have"]):
                 vet_name = self._extract_value(
-                    vet_input,
-                    "Extract the veterinarian's name. Return just the name."
+                    vet_input, "Extract the veterinarian's name. Return just the name."
                 )
                 phone_input = await self.capability_worker.run_io_loop(
                     "What's their phone number?"
@@ -477,7 +492,7 @@ class PetCareAssistantCapability(MatchingCapability):
                 if phone_input and not self._is_exit(phone_input):
                     vet_phone = self._extract_value(
                         phone_input,
-                        "Extract the phone number as digits only (e.g., 5125551234). Return just digits."
+                        "Extract the phone number as digits only (e.g., 5125551234). Return just digits.",
                     )
 
         if vet_name:
@@ -491,7 +506,7 @@ class PetCareAssistantCapability(MatchingCapability):
         if location_input and not self._is_exit(location_input):
             location = self._extract_value(
                 location_input,
-                "Extract the city and state/country. Return in format 'City, State' or 'City, Country'."
+                "Extract the city and state/country. Return in format 'City, State' or 'City, Country'.",
             )
             self.pet_data["user_location"] = location
             # Get lat/lon from location
@@ -565,7 +580,9 @@ class PetCareAssistantCapability(MatchingCapability):
         follow = await self.capability_worker.user_response()
         if follow and not self._is_exit(follow):
             cleaned = follow.lower().strip()
-            if any(w in cleaned for w in ["no", "nope", "nah", "that's it", "that's all"]):
+            if any(
+                w in cleaned for w in ["no", "nope", "nah", "that's it", "that's all"]
+            ):
                 return
             # They said something — classify and handle if it's another log
             follow_intent = self._classify_intent(follow)
@@ -585,24 +602,30 @@ class PetCareAssistantCapability(MatchingCapability):
         if pet:
             relevant_logs = [
                 e for e in self.activity_log if e.get("pet_id") == pet["id"]
-            ][:50]  # Last 50 entries for context
+            ][
+                :50
+            ]  # Last 50 entries for context
         else:
             relevant_logs = self.activity_log[:50]
 
         # Check for weight-specific queries
-        if any(w in query.lower() for w in ["weight", "weigh", "gained", "lost", "pounds", "lbs"]):
+        if any(
+            w in query.lower()
+            for w in ["weight", "weigh", "gained", "lost", "pounds", "lbs"]
+        ):
             await self._handle_weight_lookup(pet, relevant_logs)
             return
 
         today = datetime.now().strftime("%Y-%m-%d")
         system = LOOKUP_SYSTEM_PROMPT.format(today=today)
 
-        log_text = json.dumps(relevant_logs, indent=2) if relevant_logs else "No entries found."
-
-        prompt = (
-            f"User's question: {query}\n\n"
-            f"Activity log entries:\n{log_text}"
+        log_text = (
+            json.dumps(relevant_logs, indent=2)
+            if relevant_logs
+            else "No entries found."
         )
+
+        prompt = f"User's question: {query}\n\n" f"Activity log entries:\n{log_text}"
 
         try:
             response = self.capability_worker.text_to_text_response(
@@ -618,7 +641,9 @@ class PetCareAssistantCapability(MatchingCapability):
     async def _handle_weight_lookup(self, pet: dict, logs: list):
         """Summarize weight history for a pet."""
         if not pet:
-            await self.capability_worker.speak("Which pet's weight would you like to check?")
+            await self.capability_worker.speak(
+                "Which pet's weight would you like to check?"
+            )
             return
 
         weight_entries = [e for e in logs if e.get("type") == "weight"]
@@ -645,7 +670,9 @@ class PetCareAssistantCapability(MatchingCapability):
             )
             await self.capability_worker.speak(response)
         except Exception as e:
-            self.worker.editor_logging_handler.error(f"[PetCare] Weight lookup error: {e}")
+            self.worker.editor_logging_handler.error(
+                f"[PetCare] Weight lookup error: {e}"
+            )
             await self.capability_worker.speak(
                 f"{pet['name']} is currently at {pet.get('weight_lbs', 'unknown')} pounds."
             )
@@ -661,7 +688,11 @@ class PetCareAssistantCapability(MatchingCapability):
         saved_phone = self.pet_data.get("vet_phone", "")
 
         if saved_vet:
-            phone_spoken = _fmt_phone_for_speech(saved_phone) if saved_phone else "no number on file"
+            phone_spoken = (
+                _fmt_phone_for_speech(saved_phone)
+                if saved_phone
+                else "no number on file"
+            )
             await self.capability_worker.speak(
                 f"Your regular vet is {saved_vet} at {phone_spoken}."
             )
@@ -708,7 +739,11 @@ class PetCareAssistantCapability(MatchingCapability):
 
         try:
             location_str = self.pet_data.get("user_location", "")
-            query = f"emergency veterinarian near {location_str}" if location_str else "emergency veterinarian"
+            query = (
+                f"emergency veterinarian near {location_str}"
+                if location_str
+                else "emergency veterinarian"
+            )
 
             url = "https://maps.googleapis.com/maps/api/place/textsearch/json"
             params = {
@@ -730,8 +765,12 @@ class PetCareAssistantCapability(MatchingCapability):
                 return
 
             # Prioritize open locations, take top 3
-            open_vets = [r for r in results if r.get("opening_hours", {}).get("open_now")]
-            closed_vets = [r for r in results if not r.get("opening_hours", {}).get("open_now")]
+            open_vets = [
+                r for r in results if r.get("opening_hours", {}).get("open_now")
+            ]
+            closed_vets = [
+                r for r in results if not r.get("opening_hours", {}).get("open_now")
+            ]
             sorted_results = (open_vets + closed_vets)[:3]
 
             parts = []
@@ -749,11 +788,14 @@ class PetCareAssistantCapability(MatchingCapability):
             count = len(sorted_results)
             await self.capability_worker.speak(
                 f"I found {count} emergency vet{'s' if count != 1 else ''} near you. "
-                + ". ".join(parts) + ". Want the address for any of them?"
+                + ". ".join(parts)
+                + ". Want the address for any of them?"
             )
 
         except requests.exceptions.Timeout:
-            self.worker.editor_logging_handler.error("[PetCare] Google Places API timeout")
+            self.worker.editor_logging_handler.error(
+                "[PetCare] Google Places API timeout"
+            )
             await self.capability_worker.speak(
                 "The vet search timed out. Try again in a moment."
             )
@@ -882,11 +924,15 @@ class PetCareAssistantCapability(MatchingCapability):
                         products = r.get("product", [])
                         for prod in products:
                             brand = prod.get("brand_name", "Unknown brand")
-                            all_results.append({
-                                "species": species,
-                                "brand": brand,
-                                "date": r.get("original_receive_date", "unknown date"),
-                            })
+                            all_results.append(
+                                {
+                                    "species": species,
+                                    "brand": brand,
+                                    "date": r.get(
+                                        "original_receive_date", "unknown date"
+                                    ),
+                                }
+                            )
                 else:
                     self.worker.editor_logging_handler.warning(
                         f"[PetCare] FDA API returned {resp.status_code}"
@@ -934,7 +980,9 @@ class PetCareAssistantCapability(MatchingCapability):
         action = intent.get("action", "")
 
         if action == "add_pet":
-            await self.capability_worker.speak("Let's add a new pet. What's their name?")
+            await self.capability_worker.speak(
+                "Let's add a new pet. What's their name?"
+            )
             new_pet = await self._collect_pet_info()
             if new_pet:
                 self.pet_data.setdefault("pets", []).append(new_pet)
@@ -959,16 +1007,16 @@ class PetCareAssistantCapability(MatchingCapability):
                 if phone_input and not self._is_exit(phone_input):
                     vet_phone = self._extract_value(
                         phone_input,
-                        "Extract the phone number as digits only. Return just digits."
+                        "Extract the phone number as digits only. Return just digits.",
                     )
                     self.pet_data["vet_phone"] = vet_phone
 
                 await self._save_json(PETS_FILE, self.pet_data)
-                await self.capability_worker.speak(
-                    f"Updated your vet to {vet_name}."
-                )
+                await self.capability_worker.speak(f"Updated your vet to {vet_name}.")
             else:
-                await self.capability_worker.speak("Okay, keeping your current vet info.")
+                await self.capability_worker.speak(
+                    "Okay, keeping your current vet info."
+                )
 
         elif action == "update_weight":
             pet = await self._resolve_pet_async(intent.get("pet_name"))
@@ -980,7 +1028,7 @@ class PetCareAssistantCapability(MatchingCapability):
                 if weight_input and not self._is_exit(weight_input):
                     weight_str = self._extract_value(
                         weight_input,
-                        "Extract the weight as a number in pounds. Return just the number."
+                        "Extract the weight as a number in pounds. Return just the number.",
                     )
                     try:
                         new_weight = float(weight_str)
@@ -1023,7 +1071,9 @@ class PetCareAssistantCapability(MatchingCapability):
                         "allergies (array of strings), medications (array of objects with name and frequency)."
                     )
                     try:
-                        raw = self.capability_worker.text_to_text_response(update_prompt)
+                        raw = self.capability_worker.text_to_text_response(
+                            update_prompt
+                        )
                         updates = json.loads(_strip_json_fences(raw))
                         for p in self.pet_data.get("pets", []):
                             if p["id"] == pet["id"]:
@@ -1048,12 +1098,10 @@ class PetCareAssistantCapability(MatchingCapability):
                 )
                 if confirmed:
                     self.pet_data["pets"] = [
-                        p for p in self.pet_data.get("pets", [])
-                        if p["id"] != pet["id"]
+                        p for p in self.pet_data.get("pets", []) if p["id"] != pet["id"]
                     ]
                     self.activity_log = [
-                        e for e in self.activity_log
-                        if e.get("pet_id") != pet["id"]
+                        e for e in self.activity_log if e.get("pet_id") != pet["id"]
                     ]
                     await self._save_json(PETS_FILE, self.pet_data)
                     await self._save_json(ACTIVITY_LOG_FILE, self.activity_log)
@@ -1061,9 +1109,7 @@ class PetCareAssistantCapability(MatchingCapability):
                         f"{pet['name']} has been removed."
                     )
                 else:
-                    await self.capability_worker.speak(
-                        f"Okay, keeping {pet['name']}."
-                    )
+                    await self.capability_worker.speak(f"Okay, keeping {pet['name']}.")
 
         elif action == "clear_log":
             confirmed = await self.capability_worker.run_confirmation_loop(
@@ -1072,7 +1118,9 @@ class PetCareAssistantCapability(MatchingCapability):
             if confirmed:
                 self.activity_log = []
                 await self._save_json(ACTIVITY_LOG_FILE, self.activity_log)
-                await self.capability_worker.speak("All activity logs have been cleared.")
+                await self.capability_worker.speak(
+                    "All activity logs have been cleared."
+                )
             else:
                 await self.capability_worker.speak("Okay, keeping your logs.")
 
@@ -1105,7 +1153,9 @@ class PetCareAssistantCapability(MatchingCapability):
                     return p
             # Fuzzy: check if name starts with input or vice versa
             for p in pets:
-                if p["name"].lower().startswith(name_lower) or name_lower.startswith(p["name"].lower()):
+                if p["name"].lower().startswith(name_lower) or name_lower.startswith(
+                    p["name"].lower()
+                ):
                     return p
 
         # Multiple pets, no match — we can't block here with user_response
@@ -1129,7 +1179,9 @@ class PetCareAssistantCapability(MatchingCapability):
                 if p["name"].lower() == name_lower:
                     return p
             for p in pets:
-                if p["name"].lower().startswith(name_lower) or name_lower.startswith(p["name"].lower()):
+                if p["name"].lower().startswith(name_lower) or name_lower.startswith(
+                    p["name"].lower()
+                ):
                     return p
 
         # Ask user
@@ -1204,7 +1256,14 @@ class PetCareAssistantCapability(MatchingCapability):
                 data = resp.json()
                 if data.get("status") == "success":
                     isp = data.get("isp", "").lower()
-                    cloud_indicators = ["amazon", "aws", "google", "microsoft", "azure", "digitalocean"]
+                    cloud_indicators = [
+                        "amazon",
+                        "aws",
+                        "google",
+                        "microsoft",
+                        "azure",
+                        "digitalocean",
+                    ]
                     if any(c in isp for c in cloud_indicators):
                         self.worker.editor_logging_handler.warning(
                             "[PetCare] Cloud IP detected, location may be inaccurate"
@@ -1215,14 +1274,18 @@ class PetCareAssistantCapability(MatchingCapability):
                         "city": f"{data.get('city', '')}, {data.get('regionName', '')}",
                     }
         except Exception as e:
-            self.worker.editor_logging_handler.error(f"[PetCare] IP geolocation error: {e}")
+            self.worker.editor_logging_handler.error(
+                f"[PetCare] IP geolocation error: {e}"
+            )
         return None
 
     def _geocode_location(self, location_str: str) -> dict:
         """Convert a city name to lat/lon using Open-Meteo geocoding."""
         try:
             url = "https://geocoding-api.open-meteo.com/v1/search"
-            resp = requests.get(url, params={"name": location_str, "count": 1}, timeout=10)
+            resp = requests.get(
+                url, params={"name": location_str, "count": 1}, timeout=10
+            )
             if resp.status_code == 200:
                 data = resp.json()
                 results = data.get("results", [])
