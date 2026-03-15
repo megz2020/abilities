@@ -46,7 +46,7 @@ WEAVIATE_EMBED_MODEL = "Snowflake/snowflake-arctic-embed-l-v2.0"
 JINA_API_KEY = os.environ.get("JINA_API_KEY", "")
 JINA_URL = "https://api.jina.ai/v1/embeddings"
 JINA_MODEL = "jina-embeddings-v3"
-JINA_DIMENSIONS = 1536
+JINA_DIMENSIONS = 1024
 
 QDRANT_URL = os.environ.get("QDRANT_URL", "")
 QDRANT_API_KEY = os.environ.get("QDRANT_API_KEY", "")
